@@ -1,4 +1,4 @@
-name: CI Pipeline
+name: CI/CD Pipeline
 
 on:
   push:
@@ -6,8 +6,7 @@ on:
 
 jobs:
   build-and-test:
-    runs-on: ubuntu-latest
-
+    runs-on: self-hosted
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -17,9 +16,21 @@ jobs:
 
       - name: Run container for test
         run: |
-          docker run -d --name test-app -p 8000:8000 my-app:ci
+          docker run -d --name test-app -p 8001:8000 my-app:ci
           sleep 5
-          docker ps | grep test-app
-          curl --fail http://localhost:8000 || exit 1
+          curl --fail http://localhost:8001 || exit 1
           docker stop test-app
           docker rm test-app
+
+  deploy:
+    needs: build-and-test
+    runs-on: self-hosted
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy application
+        run: |
+          cd ~/devops-lab-service/docker
+          git pull origin master
+          docker compose up -d --build
